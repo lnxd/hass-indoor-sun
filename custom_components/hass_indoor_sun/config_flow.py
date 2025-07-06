@@ -16,6 +16,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional("scan_interval", default=60): vol.All(
             vol.Coerce(int), vol.Range(min=5, max=3600)
         ),
+        vol.Optional("enable_image_entity", default=False): bool,
+        vol.Optional("top_left_x"): vol.All(vol.Coerce(int), vol.Range(min=0)),
+        vol.Optional("top_left_y"): vol.All(vol.Coerce(int), vol.Range(min=0)),
+        vol.Optional("bottom_right_x"): vol.All(vol.Coerce(int), vol.Range(min=0)),
+        vol.Optional("bottom_right_y"): vol.All(vol.Coerce(int), vol.Range(min=0)),
     }
 )
 
@@ -27,12 +32,65 @@ class IndoorSunConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """First (and only) step."""
+        errors: dict[str, str] = {}
+        
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input["camera"], data=user_input
-            )
+            if any(coord in user_input for coord in ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]):
+                required_coords = ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]
+                if not all(coord in user_input and user_input[coord] is not None for coord in required_coords):
+                    errors["base"] = "crop_coordinates_incomplete"
+                elif (user_input["top_left_x"] >= user_input["bottom_right_x"] or 
+                      user_input["top_left_y"] >= user_input["bottom_right_y"]):
+                    errors["base"] = "crop_coordinates_invalid"
+            
+            if not errors:
+                return self.async_create_entry(
+                    title=user_input["camera"], data=user_input
+                )
 
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
-        ) 
+            errors=errors,
+        )
+
+
+class IndoorSunOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
+    """Allow the user to change options after the entry is created."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Options form – identical fields, pre-filled with current values."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            if any(coord in user_input for coord in ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]):
+                required = ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]
+                if not all(coord in user_input and user_input[coord] is not None for coord in required):
+                    errors["base"] = "crop_coordinates_incomplete"
+                elif (user_input["top_left_x"] >= user_input["bottom_right_x"] or
+                      user_input["top_left_y"] >= user_input["bottom_right_y"]):
+                    errors["base"] = "crop_coordinates_invalid"
+
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
+
+        cur = {**self.config_entry.data, **self.config_entry.options}
+        schema = vol.Schema(
+            {
+                vol.Required("base_url", default=cur["base_url"]): str,
+                vol.Required("camera", default=cur["camera"]): str,
+                vol.Optional("scan_interval", default=cur.get("scan_interval", 60)): vol.All(
+                    vol.Coerce(int), vol.Range(min=5, max=3600)
+                ),
+                vol.Optional("enable_image_entity", default=cur.get("enable_image_entity", False)): bool,
+                vol.Optional("top_left_x", default=cur.get("top_left_x")): vol.Any(int, None),
+                vol.Optional("top_left_y", default=cur.get("top_left_y")): vol.Any(int, None),
+                vol.Optional("bottom_right_x", default=cur.get("bottom_right_x")): vol.Any(int, None),
+                vol.Optional("bottom_right_y", default=cur.get("bottom_right_y")): vol.Any(int, None),
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors) 

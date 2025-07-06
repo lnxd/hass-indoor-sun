@@ -8,6 +8,8 @@ Home Assistant custom component that fetches JPEG frames from a Frigate camera a
 
 - **Brightness Sensor**: Calculates brightness percentage using the luminance formula: `Y = 0.2126*R + 0.7152*G + 0.0722*B`
 - **RGB Sensor**: Provides average RGB values from the camera frame
+- **Image Entity**: Optional image entity that displays the reference image used for calculations (excludes from recorder)
+- **Crop Support**: Optional crop coordinates to analyze only a specific region of the camera frame
 - **Async Operation**: Uses modern Home Assistant patterns with `DataUpdateCoordinator`
 - **Frigate Integration**: Fetches frames from Frigate's JPEG endpoint (`/api/<camera>/latest.jpg`)
 - **Configurable Update Interval**: Default 60 seconds, customizable per camera
@@ -22,23 +24,11 @@ Home Assistant custom component that fetches JPEG frames from a Frigate camera a
 
 2. Restart Home Assistant
 
-3. Add the integration through the UI or via YAML configuration
+3. Add the integration through the UI
 
 ## Configuration
 
-### YAML Configuration
-
-Add to your `configuration.yaml`:
-
-```yaml
-hass_indoor_sun:
-  - base_url: http://192.168.1.30:5000
-    camera: driveway
-    scan_interval: 60
-  - base_url: http://192.168.1.30:5000
-    camera: backyard
-    scan_interval: 30
-```
+The component is configured through the Home Assistant UI. Go to **Settings > Devices & Services > Add Integration** and search for "Indoor Sun".
 
 ### Configuration Options
 
@@ -47,14 +37,21 @@ hass_indoor_sun:
 | `base_url` | string | Yes | - | Base URL of your Frigate server |
 | `camera` | string | Yes | - | Name of the Frigate camera |
 | `scan_interval` | integer | No | 60 | Update interval in seconds |
+| `enable_image_entity` | boolean | No | false | Enable image entity to display reference image |
+| `top_left_x` | integer | No | - | X coordinate of top-left crop point |
+| `top_left_y` | integer | No | - | Y coordinate of top-left crop point |
+| `bottom_right_x` | integer | No | - | X coordinate of bottom-right crop point |
+| `bottom_right_y` | integer | No | - | Y coordinate of bottom-right crop point |
 
-## Sensors
+**Note**: Crop coordinates must be provided together (all four coordinates) or not at all. The cropped region will be used for both RGB calculations and the image entity display.
 
-The component creates two sensors for each configured camera:
+## Entities
+
+The component creates sensors for each configured camera:
 
 ### `sensor.sun_brightness`
 - **Unit**: `%`
-- **Device Class**: `illuminance`
+- **Device Class**: `percentage`
 - **State**: Brightness percentage (0-100)
 - **Attributes**:
   - `camera`: Camera name
@@ -68,6 +65,14 @@ The component creates two sensors for each configured camera:
   - `base_url`: Frigate server URL
   - `r`, `g`, `b`: Individual RGB values
   - `brightness`: Brightness percentage
+
+### `image.sun_reference_image` (Optional)
+- **State**: JPEG image of the reference frame used for calculations
+- **Attributes**:
+  - `camera`: Camera name
+  - `base_url`: Frigate server URL
+  - `crop_coordinates`: Crop coordinates if configured
+- **Note**: This entity is excluded from the recorder to avoid storing image data
 
 ## Automation Examples
 
@@ -152,13 +157,15 @@ action:
 ### Image Processing
 - Fetches JPEG frames from Frigate's REST API
 - Processes images asynchronously using Home Assistant's executor
-- Calculates average RGB values across all pixels
+- Supports cropping to analyze only specific regions
+- Calculates average RGB values across all pixels (in the crop region if specified)
 - Uses the standard luminance formula for brightness calculation
 
 ### Performance
 - Images are processed in a separate thread to avoid blocking the event loop
 - 10-second timeout for HTTP requests
 - Configurable update intervals to balance accuracy vs. performance
+- Optional image entity to minimize data storage
 
 ## Troubleshooting
 
@@ -177,6 +184,11 @@ action:
 3. **Memory usage**
    - Large images may consume significant memory
    - Consider reducing camera resolution in Frigate if needed
+   - Use crop coordinates to analyze only the relevant region
+
+4. **Image entity not appearing**
+   - Ensure `enable_image_entity` is set to `true`
+   - Check that the integration has been reloaded after configuration changes
 
 ### Debugging
 
@@ -196,6 +208,7 @@ Built with modern Home Assistant patterns:
 - Implements proper async/await patterns
 - Follows Home Assistant entity conventions
 - Includes comprehensive error handling
+- Full type hints and passes mypy --strict
 
 ## License
 

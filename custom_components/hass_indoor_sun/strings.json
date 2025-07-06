@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Indoor Sun Brightness & RGB",
+        "description": "Configure Indoor Sun integration",
+        "data": {
+          "base_url": "Frigate Base URL",
+          "camera": "Camera Name",
+          "scan_interval": "Scan Interval (seconds)",
+          "enable_image_entity": "Enable Image Entity",
+          "top_left_x": "Top Left X Coordinate",
+          "top_left_y": "Top Left Y Coordinate",
+          "bottom_right_x": "Bottom Right X Coordinate",
+          "bottom_right_y": "Bottom Right Y Coordinate"
+        }
+      }
+    },
+    "error": {
+      "crop_coordinates_incomplete": "All crop coordinates must be provided together (top_left_x, top_left_y, bottom_right_x, bottom_right_y)",
+      "crop_coordinates_invalid": "Invalid crop coordinates: top-left must be less than bottom-right"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Indoor Sun options",
+        "data": {
+          "base_url": "Frigate Base URL",
+          "camera": "Camera Name",
+          "scan_interval": "Scan Interval (seconds)",
+          "enable_image_entity": "Enable Image Entity",
+          "top_left_x": "Top Left X Coordinate",
+          "top_left_y": "Top Left Y Coordinate",
+          "bottom_right_x": "Bottom Right X Coordinate",
+          "bottom_right_y": "Bottom Right Y Coordinate"
+        }
+      }
+    }
+  }
+} 

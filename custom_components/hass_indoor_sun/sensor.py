@@ -36,12 +36,13 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
+        data = {**entry.data, **entry.options}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": f"Indoor Sun {entry.data['camera']}",
+            "name": f"Indoor Sun {data['camera']}",
             "manufacturer": "Indoor Sun",
             "model": "Frigate Camera Analyzer",
-            "sw_version": "0.1.0",
+            "sw_version": "0.1.1",
         }
 
     @property
@@ -75,9 +76,10 @@ class BrightnessSensor(IndoorSunSensorBase):
         if self.coordinator.data is None:
             return {}
         
+        data = {**self._entry.data, **self._entry.options}
         return {
-            "camera": self._entry.data["camera"],
-            "base_url": self._entry.data["base_url"],
+            "camera": data["camera"],
+            "base_url": data["base_url"],
             "r": self.coordinator.data.get("r"),
             "g": self.coordinator.data.get("g"),
             "b": self.coordinator.data.get("b"),
@@ -108,9 +110,10 @@ class RGBSensor(IndoorSunSensorBase):
         if self.coordinator.data is None:
             return {}
         
+        data = {**self._entry.data, **self._entry.options}
         return {
-            "camera": self._entry.data["camera"],
-            "base_url": self._entry.data["base_url"],
+            "camera": data["camera"],
+            "base_url": data["base_url"],
             "r": self.coordinator.data.get("r"),
             "g": self.coordinator.data.get("g"),
             "b": self.coordinator.data.get("b"),
