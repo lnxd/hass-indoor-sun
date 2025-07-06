@@ -39,8 +39,13 @@
       },
       "test_connection": {
         "title": "Test Connection",
-        "description": "Test the connection to verify that Indoor Sun can access your camera images.",
-        "data": {}
+        "description": "Test the connection to verify that Indoor Sun can access your camera images.\n\nURL: {url}\nStatus: {status}",
+        "data": {
+          "action": "Action"
+        },
+        "data_description": {
+          "action": "Choose 'test' to test the connection, or 'proceed' to continue with setup"
+        }
       },
       "settings": {
         "title": "General Settings",
@@ -164,6 +169,12 @@
       "options": {
         "http": "HTTP",
         "https": "HTTPS"
+      }
+    },
+    "action": {
+      "options": {
+        "test": "Test Connection",
+        "proceed": "Continue Setup"
       }
     }
   }

@@ -204,21 +204,22 @@ class RGBSensor(IndoorSunSensorBase):
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_rgb"
         self._attr_name = "Sun RGB"
+        self._attr_native_unit_of_measurement = None
+        self._attr_device_class = None
         self._attr_icon = "mdi:palette"
-        self._attr_state_class = "measurement"
 
     @property
     def native_value(self) -> Optional[str]:
-        """Return the RGB string.
+        """Return the RGB values as a formatted string.
 
         Returns:
-            Optional[str]: The RGB values formatted as "r, g, b", or None if
+            Optional[str]: The RGB values as "R, G, B" format, or None if
                           data is not available.
         """
         if self.coordinator.data is None:
             return None
         rgb_string = self.coordinator.data.get("rgb_string")
-        return str(rgb_string) if rgb_string is not None else None
+        return rgb_string if rgb_string is not None else None
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -232,15 +233,10 @@ class RGBSensor(IndoorSunSensorBase):
         if self.coordinator.data is not None:
             attrs.update(
                 {
+                    "brightness": self.coordinator.data.get("brightness"),
                     "r": self.coordinator.data.get("r"),
                     "g": self.coordinator.data.get("g"),
                     "b": self.coordinator.data.get("b"),
-                    "brightness": self.coordinator.data.get("brightness"),
-                    "rgb_color": [
-                        self.coordinator.data.get("r", 0),
-                        self.coordinator.data.get("g", 0),
-                        self.coordinator.data.get("b", 0),
-                    ],
                 }
             )
 

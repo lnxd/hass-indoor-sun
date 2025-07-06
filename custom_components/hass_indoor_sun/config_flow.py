@@ -225,7 +225,7 @@ class IndoorSunConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if "test_connection" in user_input:
+            if user_input.get("action") == "test":
                 try:
                     session = async_get_clientsession(self.hass)
 
@@ -248,26 +248,25 @@ class IndoorSunConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
                     _LOGGER.error("Connection test failed: %s", err)
                     errors["base"] = "connection_error"
 
-            elif "proceed_anyway" in user_input:
-                pass
-
-            elif "proceed" in user_input and self.test_image_data:
+            elif user_input.get("action") == "proceed":
                 return await self.async_step_settings()
 
-            elif "retest" in user_input:
-                errors.pop("base", None)
-                self.test_image_data = None
-
-            else:
-                return await self.async_step_settings()
+        if self.test_image_data:
+            schema = vol.Schema(
+                {vol.Required("action", default="proceed"): vol.In(["test", "proceed"])}
+            )
+        else:
+            schema = vol.Schema(
+                {vol.Required("action", default="test"): vol.In(["test", "proceed"])}
+            )
 
         return self.async_show_form(
             step_id="test_connection",
-            data_schema=vol.Schema({}),
+            data_schema=schema,
             errors=errors,
             description_placeholders={
-                "url": self.test_image_url,
-                "status": "Success" if self.test_image_data else "Not tested",
+                "url": self.test_image_url or "N/A",
+                "status": "Success ✓" if self.test_image_data else "Not tested yet",
             },
         )
 

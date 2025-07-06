@@ -73,6 +73,8 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         }
         self._attr_entity_registry_enabled_default = True
 
+        self.access_tokens: list[str] = []
+
     @property
     def available(self) -> bool:
         """Return True if entity is available.
