@@ -1,10 +1,8 @@
 """Indoor Sun Brightness & RGB Component for Home Assistant."""
-import asyncio
 import logging
 from datetime import timedelta
 from typing import Any, Dict
 
-import aiohttp
 import async_timeout
 from PIL import Image
 from io import BytesIO
@@ -34,14 +32,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
 
 
-class IndoorSunCoordinator(DataUpdateCoordinator):
+class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: ignore[misc]
     """Coordinator for Indoor Sun component."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -76,9 +74,10 @@ class IndoorSunCoordinator(DataUpdateCoordinator):
             
             image_data = await response.read()
             
-        return await self.hass.async_add_executor_job(
+        result: Dict[str, Any] = await self.hass.async_add_executor_job(
             self._process_image, image_data
         )
+        return result
 
     def _process_image(self, image_data: bytes) -> Dict[str, Any]:
         """Process the image to calculate brightness and RGB values."""

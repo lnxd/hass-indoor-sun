@@ -29,7 +29,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):
+class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
     """Base class for Indoor Sun sensors."""
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
@@ -47,7 +47,7 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
 
 class BrightnessSensor(IndoorSunSensorBase):
@@ -57,7 +57,7 @@ class BrightnessSensor(IndoorSunSensorBase):
         """Initialize the brightness sensor."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_brightness"
-        self._attr_name = f"Sun Brightness"
+        self._attr_name = "Sun Brightness"
         self._attr_native_unit_of_measurement = "%"
         self._attr_icon = "mdi:brightness-percent"
 
@@ -66,7 +66,8 @@ class BrightnessSensor(IndoorSunSensorBase):
         """Return the brightness percentage."""
         if self.coordinator.data is None:
             return None
-        return self.coordinator.data.get("brightness")
+        brightness = self.coordinator.data.get("brightness")
+        return float(brightness) if brightness is not None else None
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -90,7 +91,7 @@ class RGBSensor(IndoorSunSensorBase):
         """Initialize the RGB sensor."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_rgb"
-        self._attr_name = f"Sun RGB"
+        self._attr_name = "Sun RGB"
         self._attr_icon = "mdi:palette"
 
     @property
@@ -98,7 +99,8 @@ class RGBSensor(IndoorSunSensorBase):
         """Return the RGB string."""
         if self.coordinator.data is None:
             return None
-        return self.coordinator.data.get("rgb_string")
+        rgb_string = self.coordinator.data.get("rgb_string")
+        return str(rgb_string) if rgb_string is not None else None
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
