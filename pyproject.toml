@@ -11,4 +11,26 @@ authors = [
 ]
 
 [tool.setuptools]
-packages = ["custom_components.indoor_sun"] 
+packages = ["custom_components.indoor_sun"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+show_error_codes = true
+
+# Ignore missing imports for Home Assistant modules
+[[tool.mypy.overrides]]
+module = ["homeassistant.*"]
+ignore_missing_imports = true
+
+# Ignore missing imports for async_timeout (older version compatibility)
+[[tool.mypy.overrides]]
+module = ["async_timeout"]
+ignore_missing_imports = true
+
+# Ignore missing imports for PIL (use types-Pillow instead)
+[[tool.mypy.overrides]]
+module = ["PIL.*"]
+ignore_missing_imports = true 
