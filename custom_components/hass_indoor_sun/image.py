@@ -18,7 +18,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Indoor Sun image from a config entry."""
+    """Set up Indoor Sun image entities from a config entry.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: Configuration entry containing connection details.
+        async_add_entities: Callback to add entities to Home Assistant.
+    """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
     entities = [
@@ -29,10 +35,19 @@ async def async_setup_entry(
 
 
 class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc]
-    """Image entity for the reference image."""
+    """Image entity for displaying the processed camera frame.
+    
+    Shows the current or cropped image from the Frigate camera that is
+    being analyzed for brightness and RGB values.
+    """
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the image entity."""
+        """Initialize the image entity.
+
+        Args:
+            coordinator: The data coordinator managing updates.
+            entry: Configuration entry containing device information.
+        """
         super().__init__(coordinator)
         self._entry = entry
         data = {**entry.data, **entry.options}
@@ -51,13 +66,21 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available."""
+        """Return True if entity is available.
+
+        Returns:
+            bool: True if coordinator has successfully updated and image data exists.
+        """
         return bool(self.coordinator.last_update_success and 
                    self.coordinator.data is not None and
                    "image_data" in self.coordinator.data)
 
     async def async_image(self) -> Optional[bytes]:
-        """Return the image data."""
+        """Return the current image data.
+
+        Returns:
+            Optional[bytes]: The JPEG image data, or None if not available.
+        """
         if self.coordinator.data is None:
             return None
         
@@ -66,11 +89,20 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
             return None
         
         import base64
-        return base64.b64decode(image_data)
+        try:
+            return base64.b64decode(image_data)
+        except Exception as err:
+            _LOGGER.error("Failed to decode base64 image data: %s", err)
+            return None
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return additional state attributes."""
+        """Return additional state attributes.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing camera information and 
+                           crop coordinates if configured.
+        """
         if self.coordinator.data is None:
             return {}
         

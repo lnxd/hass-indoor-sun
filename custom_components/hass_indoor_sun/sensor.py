@@ -18,7 +18,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Indoor Sun sensors from a config entry."""
+    """Set up Indoor Sun sensor entities from a config entry.
+
+    Args:
+        hass: Home Assistant instance.
+        entry: Configuration entry containing connection details.
+        async_add_entities: Callback to add entities to Home Assistant.
+    """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
     entities = [
@@ -30,10 +36,19 @@ async def async_setup_entry(
 
 
 class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
-    """Base class for Indoor Sun sensors."""
+    """Base class for Indoor Sun sensors.
+    
+    Provides common functionality for all Indoor Sun sensor entities,
+    including device information and availability checking.
+    """
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the sensor."""
+        """Initialize the sensor base class.
+
+        Args:
+            coordinator: The data coordinator managing updates.
+            entry: Configuration entry containing device information.
+        """
         super().__init__(coordinator)
         self._entry = entry
         data = {**entry.data, **entry.options}
@@ -47,15 +62,28 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available."""
+        """Return True if entity is available.
+
+        Returns:
+            bool: True if coordinator has successfully updated.
+        """
         return bool(self.coordinator.last_update_success)
 
 
 class BrightnessSensor(IndoorSunSensorBase):
-    """Sensor for brightness percentage."""
+    """Sensor for brightness percentage.
+    
+    Calculates and reports the brightness percentage of the analyzed
+    camera image using luminance formula.
+    """
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the brightness sensor."""
+        """Initialize the brightness sensor.
+
+        Args:
+            coordinator: The data coordinator managing updates.
+            entry: Configuration entry containing device information.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_brightness"
         self._attr_name = "Sun Brightness"
@@ -64,7 +92,12 @@ class BrightnessSensor(IndoorSunSensorBase):
 
     @property
     def native_value(self) -> Optional[float]:
-        """Return the brightness percentage."""
+        """Return the brightness percentage.
+
+        Returns:
+            Optional[float]: The brightness percentage (0-100), or None if 
+                           data is not available.
+        """
         if self.coordinator.data is None:
             return None
         brightness = self.coordinator.data.get("brightness")
@@ -72,7 +105,12 @@ class BrightnessSensor(IndoorSunSensorBase):
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return additional state attributes."""
+        """Return additional state attributes.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing camera information and 
+                           individual RGB component values.
+        """
         if self.coordinator.data is None:
             return {}
         
@@ -87,10 +125,19 @@ class BrightnessSensor(IndoorSunSensorBase):
 
 
 class RGBSensor(IndoorSunSensorBase):
-    """Sensor for RGB values."""
+    """Sensor for RGB values.
+    
+    Reports the average RGB values of the analyzed camera image
+    as a formatted string.
+    """
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the RGB sensor."""
+        """Initialize the RGB sensor.
+
+        Args:
+            coordinator: The data coordinator managing updates.
+            entry: Configuration entry containing device information.
+        """
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_rgb"
         self._attr_name = "Sun RGB"
@@ -98,7 +145,12 @@ class RGBSensor(IndoorSunSensorBase):
 
     @property
     def native_value(self) -> Optional[str]:
-        """Return the RGB string."""
+        """Return the RGB string.
+
+        Returns:
+            Optional[str]: The RGB values formatted as "r, g, b", or None if
+                          data is not available.
+        """
         if self.coordinator.data is None:
             return None
         rgb_string = self.coordinator.data.get("rgb_string")
@@ -106,7 +158,12 @@ class RGBSensor(IndoorSunSensorBase):
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return additional state attributes."""
+        """Return additional state attributes.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing camera information, 
+                           individual RGB values, and brightness.
+        """
         if self.coordinator.data is None:
             return {}
         

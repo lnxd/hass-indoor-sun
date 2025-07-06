@@ -26,15 +26,27 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 class IndoorSunConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[misc, call-arg]
-    """Handle the UI flow."""
+    """Handle the config flow for Indoor Sun integration.
+    
+    Provides a user interface for configuring the Indoor Sun integration,
+    including Frigate API connection details and optional image cropping.
+    """
 
     VERSION = 1
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """First (and only) step."""
+        """Handle the initial configuration step.
+
+        Args:
+            user_input: Optional dictionary containing user input from the form.
+
+        Returns:
+            FlowResult: Either a form to display or a successful entry creation.
+        """
         errors: dict[str, str] = {}
         
         if user_input is not None:
+            # Validate crop coordinates if any are provided
             if any(coord in user_input for coord in ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]):
                 required_coords = ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]
                 if not all(coord in user_input and user_input[coord] is not None for coord in required_coords):
@@ -56,16 +68,33 @@ class IndoorSunConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
 
 
 class IndoorSunOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
-    """Allow the user to change options after the entry is created."""
+    """Handle options flow for Indoor Sun integration.
+    
+    Allows users to modify configuration settings after the integration
+    has been initially set up.
+    """
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize the options flow.
+
+        Args:
+            config_entry: The configuration entry to create options for.
+        """
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Options form – identical fields, pre-filled with current values."""
+        """Handle the options configuration step.
+
+        Args:
+            user_input: Optional dictionary containing user input from the form.
+
+        Returns:
+            FlowResult: Either a form to display or a successful entry update.
+        """
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Validate crop coordinates if any are provided
             if any(coord in user_input for coord in ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]):
                 required = ["top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"]
                 if not all(coord in user_input and user_input[coord] is not None for coord in required):
@@ -77,6 +106,7 @@ class IndoorSunOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
+        # Pre-fill form with current configuration values
         cur = {**self.config_entry.data, **self.config_entry.options}
         schema = vol.Schema(
             {
