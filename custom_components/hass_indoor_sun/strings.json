@@ -148,7 +148,9 @@
     },
     "error": {
       "crop_coordinates_incomplete": "All crop coordinates must be provided together (top-left X, top-left Y, bottom-right X, bottom-right Y)",
-      "crop_coordinates_invalid": "Invalid crop coordinates: top-left coordinates must be less than bottom-right coordinates"
+      "crop_coordinates_invalid": "Invalid crop coordinates: top-left coordinates must be less than bottom-right coordinates",
+      "brightness_range_invalid": "Minimum brightness must be less than maximum brightness",
+      "color_range_invalid": "Minimum color values must be less than maximum color values"
     }
   },
   "selector": {

@@ -1,4 +1,5 @@
 """Indoor Sun Brightness & RGB sensors."""
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -26,18 +27,18 @@ async def async_setup_entry(
         async_add_entities: Callback to add entities to Home Assistant.
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    
+
     entities = [
         BrightnessSensor(coordinator, entry),
         RGBSensor(coordinator, entry),
     ]
-    
+
     async_add_entities(entities)
 
 
 class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
     """Base class for Indoor Sun sensors.
-    
+
     Provides common functionality for all Indoor Sun sensor entities,
     including device information and availability checking.
     """
@@ -52,14 +53,14 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
         super().__init__(coordinator)
         self._entry = entry
         data = {**entry.data, **entry.options}
-        
+
         source_type = data.get("source_type", "frigate")
         if source_type == "frigate":
             camera_name = data.get("camera_name", data.get("camera", "unknown"))
             device_name = f"Indoor Sun {camera_name}"
         else:
             device_name = "Indoor Sun Snapshot"
-        
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": device_name,
@@ -86,7 +87,7 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
         """
         if self.coordinator.data is None:
             return {}
-        
+
         data = {**self._entry.data, **self._entry.options}
         attrs = {
             "camera": data["camera"],
@@ -94,14 +95,14 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
             "image_url": self.coordinator.image_url,
             "scan_interval": data.get("scan_interval", 60),
         }
-        
+
         if "cropped" in self.coordinator.data:
             attrs["cropped"] = self.coordinator.data["cropped"]
         if "brightness_adjusted" in self.coordinator.data:
             attrs["brightness_adjusted"] = self.coordinator.data["brightness_adjusted"]
         if "color_adjusted" in self.coordinator.data:
             attrs["color_adjusted"] = self.coordinator.data["color_adjusted"]
-        
+
         if self.coordinator.crop_coordinates:
             attrs["crop_coordinates"] = {
                 "top_left_x": self.coordinator.crop_coordinates[0],
@@ -109,13 +110,13 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
                 "bottom_right_x": self.coordinator.crop_coordinates[2],
                 "bottom_right_y": self.coordinator.crop_coordinates[3],
             }
-        
+
         if self.coordinator.brightness_adjustment_enabled:
             attrs["brightness_range"] = {
                 "min": self.coordinator.min_brightness,
                 "max": self.coordinator.max_brightness,
             }
-        
+
         if self.coordinator.color_adjustment_enabled:
             attrs["color_range"] = {
                 "min_r": self.coordinator.min_color[0],
@@ -125,13 +126,13 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
                 "max_g": self.coordinator.max_color[1],
                 "max_b": self.coordinator.max_color[2],
             }
-        
+
         return attrs
 
 
 class BrightnessSensor(IndoorSunSensorBase):
     """Sensor for brightness percentage.
-    
+
     Reports the calculated brightness as a percentage value with
     percentage device class for proper display in Home Assistant.
     """
@@ -172,21 +173,23 @@ class BrightnessSensor(IndoorSunSensorBase):
             Dict[str, Any]: Dictionary containing RGB values and processing information.
         """
         attrs = super().extra_state_attributes
-        
+
         if self.coordinator.data is not None:
-            attrs.update({
-                "r": self.coordinator.data.get("r"),
-                "g": self.coordinator.data.get("g"),
-                "b": self.coordinator.data.get("b"),
-                "rgb_string": self.coordinator.data.get("rgb_string"),
-            })
-        
+            attrs.update(
+                {
+                    "r": self.coordinator.data.get("r"),
+                    "g": self.coordinator.data.get("g"),
+                    "b": self.coordinator.data.get("b"),
+                    "rgb_string": self.coordinator.data.get("rgb_string"),
+                }
+            )
+
         return attrs
 
 
 class RGBSensor(IndoorSunSensorBase):
     """Sensor for RGB values.
-    
+
     Reports the average RGB values of the analyzed camera image
     as a formatted string.
     """
@@ -225,18 +228,20 @@ class RGBSensor(IndoorSunSensorBase):
             Dict[str, Any]: Dictionary containing individual RGB values and brightness.
         """
         attrs = super().extra_state_attributes
-        
+
         if self.coordinator.data is not None:
-            attrs.update({
-                "r": self.coordinator.data.get("r"),
-                "g": self.coordinator.data.get("g"),
-                "b": self.coordinator.data.get("b"),
-                "brightness": self.coordinator.data.get("brightness"),
-                "rgb_color": [
-                    self.coordinator.data.get("r", 0),
-                    self.coordinator.data.get("g", 0),
-                    self.coordinator.data.get("b", 0),
-                ],
-            })
-        
+            attrs.update(
+                {
+                    "r": self.coordinator.data.get("r"),
+                    "g": self.coordinator.data.get("g"),
+                    "b": self.coordinator.data.get("b"),
+                    "brightness": self.coordinator.data.get("brightness"),
+                    "rgb_color": [
+                        self.coordinator.data.get("r", 0),
+                        self.coordinator.data.get("g", 0),
+                        self.coordinator.data.get("b", 0),
+                    ],
+                }
+            )
+
         return attrs
