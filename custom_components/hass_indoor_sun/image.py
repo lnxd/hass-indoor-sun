@@ -1,4 +1,13 @@
-"""Indoor Sun Image platform."""
+"""Indoor Sun Image platform.
+
+Provides image entities for displaying processed camera frames from the Indoor
+Sun integration. The image entity shows the current or cropped image from the
+camera source being analyzed for brightness and RGB values.
+
+The image entity automatically generates access tokens to prevent IndexError
+issues and provides additional state attributes with camera information,
+processing status, and configuration details.
+"""
 
 import logging
 from typing import Any, Dict, Optional
@@ -75,12 +84,18 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
 
         self.access_tokens: list[str] = []
 
+    async def async_added_to_hass(self) -> None:
+        """Called when entity is added to Home Assistant."""
+        await super().async_added_to_hass()
+        await self.async_generate_access_token()
+
     @property
     def available(self) -> bool:
         """Return True if entity is available.
 
         Returns:
-            bool: True if coordinator has successfully updated and image data exists.
+            bool: True if coordinator has successfully updated and image data
+                exists.
         """
         return bool(
             self.coordinator.last_update_success
