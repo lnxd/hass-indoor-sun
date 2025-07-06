@@ -76,7 +76,6 @@ class IndoorSunCoordinator(DataUpdateCoordinator):
             
             image_data = await response.read()
             
-        # Process image in executor to avoid blocking
         return await self.hass.async_add_executor_job(
             self._process_image, image_data
         )
@@ -84,14 +83,11 @@ class IndoorSunCoordinator(DataUpdateCoordinator):
     def _process_image(self, image_data: bytes) -> Dict[str, Any]:
         """Process the image to calculate brightness and RGB values."""
         with Image.open(BytesIO(image_data)) as img:
-            # Convert to RGB if not already
             if img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Get all pixel values
             pixels = list(img.getdata())
             
-            # Calculate average RGB
             total_pixels = len(pixels)
             total_r = sum(pixel[0] for pixel in pixels)
             total_g = sum(pixel[1] for pixel in pixels)
@@ -101,7 +97,6 @@ class IndoorSunCoordinator(DataUpdateCoordinator):
             avg_g = total_g / total_pixels
             avg_b = total_b / total_pixels
             
-            # Calculate brightness using Y = 0.2126*R + 0.7152*G + 0.0722*B
             brightness_y = 0.2126 * avg_r + 0.7152 * avg_g + 0.0722 * avg_b
             brightness_percent = (brightness_y / 255) * 100
             

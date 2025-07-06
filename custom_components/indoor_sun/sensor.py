@@ -2,7 +2,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -59,7 +59,6 @@ class BrightnessSensor(IndoorSunSensorBase):
         self._attr_unique_id = f"{entry.entry_id}_brightness"
         self._attr_name = f"Sun Brightness"
         self._attr_native_unit_of_measurement = "%"
-        self._attr_device_class = SensorDeviceClass.ILLUMINANCE
         self._attr_icon = "mdi:brightness-percent"
 
     @property
