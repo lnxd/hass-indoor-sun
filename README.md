@@ -2,6 +2,8 @@
 
 Home Assistant custom component that fetches JPEG frames from a Frigate camera and calculates brightness and RGB values to create ambient lighting that matches the sky conditions.
 
+[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository_url=https%3A%2F%2Fgithub.com%2Flnxd%2Findoor_sun&category=integration)
+
 ## Features
 
 - **Brightness Sensor**: Calculates brightness percentage using the luminance formula: `Y = 0.2126*R + 0.7152*G + 0.0722*B`

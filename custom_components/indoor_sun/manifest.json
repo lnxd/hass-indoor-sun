@@ -3,5 +3,8 @@
   "name": "Indoor Sun Brightness & RGB",
   "version": "0.1.0",
   "requirements": ["pillow>=10.3.0"],
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "codeowners": ["@lnxd"],
+  "attribution": "Copyright (c) 2025 lnxd",
+  "license": "MIT"
 } 
