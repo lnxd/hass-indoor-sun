@@ -58,7 +58,9 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
             coordinator: The data coordinator managing updates.
             entry: Configuration entry containing device information.
         """
-        super().__init__(coordinator)
+        CoordinatorEntity.__init__(self, coordinator)
+        ImageEntity.__init__(self)
+        
         self._entry = entry
         data = {**entry.data, **entry.options}
 
