@@ -33,4 +33,10 @@ ignore_missing_imports = true
 # Ignore missing imports for PIL (use types-Pillow instead)
 [[tool.mypy.overrides]]
 module = ["PIL.*"]
-ignore_missing_imports = true 
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+select = ["E", "F", "I"]
+exclude = ["custom_components/*/manifest.json"] 
