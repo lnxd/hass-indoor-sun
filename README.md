@@ -2,7 +2,7 @@
 
 Home Assistant custom component that fetches JPEG frames from a Frigate camera and calculates brightness and RGB values to create ambient lighting that matches the sky conditions.
 
-[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository_url=https%3A%2F%2Fgithub.com%2Flnxd%2Findoor_sun&category=integration)
+[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository_url=https%3A%2F%2Fgithub.com%2Flnxd%2Fhass-indoor-sun&category=integration)
 
 ## Features
 
@@ -17,7 +17,7 @@ Home Assistant custom component that fetches JPEG frames from a Frigate camera a
 1. Clone this repository into your Home Assistant `custom_components` directory:
    ```bash
    cd /path/to/homeassistant/custom_components/
-   git clone https://github.com/lnxd/indoor_sun.git
+   git clone https://github.com/lnxd/hass-indoor-sun.git
    ```
 
 2. Restart Home Assistant
@@ -31,7 +31,7 @@ Home Assistant custom component that fetches JPEG frames from a Frigate camera a
 Add to your `configuration.yaml`:
 
 ```yaml
-indoor_sun:
+hass-indoor-sun:
   - base_url: http://192.168.1.30:5000
     camera: driveway
     scan_interval: 60
@@ -186,7 +186,7 @@ Enable debug logging in `configuration.yaml`:
 logger:
   default: info
   logs:
-    custom_components.indoor_sun: debug
+    custom_components.hass-indoor-sun: debug
 ```
 
 ## Development

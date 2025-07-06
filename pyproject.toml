@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "indoor_sun"
+name = "hass-indoor-sun"
 version = "0.1.0"
 dependencies = ["pillow>=10.3.0"]
 authors = [
@@ -11,7 +11,7 @@ authors = [
 ]
 
 [tool.setuptools]
-packages = ["custom_components.indoor_sun"]
+packages = ["custom_components.hass-indoor-sun"]
 
 [tool.mypy]
 python_version = "3.11"
