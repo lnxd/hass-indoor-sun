@@ -11,7 +11,7 @@ authors = [
 ]
 
 [tool.setuptools]
-packages = ["custom_components.hass-indoor-sun"]
+packages = ["custom_components.hass_indoor_sun"]
 
 [tool.mypy]
 python_version = "3.11"

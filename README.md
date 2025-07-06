@@ -31,7 +31,7 @@ Home Assistant custom component that fetches JPEG frames from a Frigate camera a
 Add to your `configuration.yaml`:
 
 ```yaml
-hass-indoor-sun:
+hass_indoor_sun:
   - base_url: http://192.168.1.30:5000
     camera: driveway
     scan_interval: 60
@@ -186,7 +186,7 @@ Enable debug logging in `configuration.yaml`:
 logger:
   default: info
   logs:
-    custom_components.hass-indoor-sun: debug
+    custom_components.hass_indoor_sun: debug
 ```
 
 ## Development

@@ -13,7 +13,7 @@ from PIL import Image
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "indoor-sun"
+DOMAIN = "hass_indoor_sun"
 PLATFORMS = ["sensor"]
 
 

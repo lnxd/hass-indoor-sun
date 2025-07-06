@@ -1,5 +1,5 @@
 {
-  "domain": "indoor-sun",
+  "domain": "hass_indoor_sun",
   "name": "Indoor Sun Brightness & RGB",
   "version": "0.1.0",
   "requirements": ["pillow>=10.3.0"],
