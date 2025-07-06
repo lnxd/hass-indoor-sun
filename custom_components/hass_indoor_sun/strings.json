@@ -2,39 +2,166 @@
   "config": {
     "step": {
       "user": {
-        "title": "Indoor Sun Brightness & RGB",
-        "description": "Configure Indoor Sun integration",
+        "title": "Choose Image Source",
+        "description": "Select how you want to provide camera images to Indoor Sun. Frigate provides automatic camera discovery and management, while Snapshot URL allows you to use any image source.",
         "data": {
-          "base_url": "Frigate Base URL",
-          "camera": "Camera Name",
-          "scan_interval": "Scan Interval (seconds)",
-          "enable_image_entity": "Enable Image Entity",
-          "top_left_x": "Top Left X Coordinate",
-          "top_left_y": "Top Left Y Coordinate",
-          "bottom_right_x": "Bottom Right X Coordinate",
-          "bottom_right_y": "Bottom Right Y Coordinate"
+          "source_type": "Image Source"
+        },
+        "data_description": {
+          "source_type": "Choose 'Frigate' to connect to a Frigate NVR instance, or 'Snapshot' to use a direct camera image URL"
+        }
+      },
+      "frigate": {
+        "title": "Configure Frigate Connection",
+        "description": "Enter your Frigate server details. The integration will connect to your Frigate instance to fetch camera images.",
+        "data": {
+          "protocol": "Protocol",
+          "host": "Host Address",
+          "port": "Port",
+          "camera_name": "Camera Name"
+        },
+        "data_description": {
+          "protocol": "Protocol used to connect to Frigate (http or https)",
+          "host": "IP address or hostname of your Frigate server (e.g., 192.168.1.100 or frigate.local)",
+          "port": "Port number (defaults to 5000 for HTTP, 443 for HTTPS)",
+          "camera_name": "Name of the camera as configured in Frigate"
+        }
+      },
+      "snapshot": {
+        "title": "Configure Snapshot URL",
+        "description": "Enter the complete URL to your camera's snapshot image. This URL will be used to fetch images for analysis.",
+        "data": {
+          "snapshot_url": "Snapshot URL"
+        },
+        "data_description": {
+          "snapshot_url": "Complete URL to camera image (e.g., http://192.168.1.100:8080/snapshot.jpg). Must start with http:// or https://"
+        }
+      },
+      "test_connection": {
+        "title": "Test Connection",
+        "description": "Test the connection to verify that Indoor Sun can access your camera images.",
+        "data": {}
+      },
+      "settings": {
+        "title": "General Settings",
+        "description": "Configure how often Indoor Sun should update and whether to create an image entity.",
+        "data": {
+          "scan_interval": "Update Interval (seconds)",
+          "enable_image_entity": "Create Image Entity"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch and analyze images (5-3600 seconds, default: 60)",
+          "enable_image_entity": "Create an image entity showing the current analyzed image (uses more storage)"
+        }
+      },
+      "image_processing": {
+        "title": "Image Processing Options",
+        "description": "Configure advanced image processing options including cropping and brightness/color adjustments.",
+        "data": {
+          "enable_cropping": "Enable Image Cropping",
+          "top_left_x": "Top-Left X Coordinate",
+          "top_left_y": "Top-Left Y Coordinate", 
+          "bottom_right_x": "Bottom-Right X Coordinate",
+          "bottom_right_y": "Bottom-Right Y Coordinate",
+          "enable_brightness_adjustment": "Enable Brightness Adjustment",
+          "min_brightness": "Minimum Brightness (%)",
+          "max_brightness": "Maximum Brightness (%)",
+          "enable_color_adjustment": "Enable Color Adjustment",
+          "min_color_r": "Minimum Red (0-255)",
+          "min_color_g": "Minimum Green (0-255)",
+          "min_color_b": "Minimum Blue (0-255)",
+          "max_color_r": "Maximum Red (0-255)",
+          "max_color_g": "Maximum Green (0-255)",
+          "max_color_b": "Maximum Blue (0-255)"
+        },
+        "data_description": {
+          "enable_cropping": "Crop the image to analyze only a specific region (useful for focusing on sky/window areas)",
+          "top_left_x": "X coordinate of the top-left corner of the crop area",
+          "top_left_y": "Y coordinate of the top-left corner of the crop area",
+          "bottom_right_x": "X coordinate of the bottom-right corner of the crop area",
+          "bottom_right_y": "Y coordinate of the bottom-right corner of the crop area",
+          "enable_brightness_adjustment": "Scale brightness values to a custom range",
+          "min_brightness": "Minimum brightness value (0-100%, brightness values will be scaled from this)",
+          "max_brightness": "Maximum brightness value (0-100%, brightness values will be scaled to this)",
+          "enable_color_adjustment": "Scale color values to custom ranges",
+          "min_color_r": "Minimum red value (0-255, red values will be scaled from this)",
+          "min_color_g": "Minimum green value (0-255, green values will be scaled from this)",
+          "min_color_b": "Minimum blue value (0-255, blue values will be scaled from this)",
+          "max_color_r": "Maximum red value (0-255, red values will be scaled to this)",
+          "max_color_g": "Maximum green value (0-255, green values will be scaled to this)",
+          "max_color_b": "Maximum blue value (0-255, blue values will be scaled to this)"
         }
       }
     },
     "error": {
-      "crop_coordinates_incomplete": "All crop coordinates must be provided together (top_left_x, top_left_y, bottom_right_x, bottom_right_y)",
-      "crop_coordinates_invalid": "Invalid crop coordinates: top-left must be less than bottom-right"
+      "url_invalid_protocol": "URL must start with http:// or https://",
+      "connection_failed": "Could not connect to the image source. Please check your settings and try again.",
+      "connection_error": "Network error occurred while testing connection. Please check your network and try again.",
+      "invalid_image_format": "The URL did not return a valid image. Please check the URL and try again.",
+      "crop_coordinates_incomplete": "All crop coordinates must be provided together (top-left X, top-left Y, bottom-right X, bottom-right Y)",
+      "crop_coordinates_invalid": "Invalid crop coordinates: top-left coordinates must be less than bottom-right coordinates",
+      "brightness_range_invalid": "Minimum brightness must be less than maximum brightness",
+      "color_range_invalid": "Minimum color values must be less than maximum color values"
+    },
+    "abort": {
+      "already_configured": "This camera is already configured for Indoor Sun"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Indoor Sun options",
+        "title": "Indoor Sun Settings",
+        "description": "Modify settings for your Indoor Sun integration. Note: Connection settings cannot be changed here - remove and re-add the integration to change those.",
         "data": {
-          "base_url": "Frigate Base URL",
-          "camera": "Camera Name",
-          "scan_interval": "Scan Interval (seconds)",
-          "enable_image_entity": "Enable Image Entity",
-          "top_left_x": "Top Left X Coordinate",
-          "top_left_y": "Top Left Y Coordinate",
-          "bottom_right_x": "Bottom Right X Coordinate",
-          "bottom_right_y": "Bottom Right Y Coordinate"
+          "scan_interval": "Update Interval (seconds)",
+          "enable_image_entity": "Create Image Entity",
+          "top_left_x": "Top-Left X Coordinate",
+          "top_left_y": "Top-Left Y Coordinate",
+          "bottom_right_x": "Bottom-Right X Coordinate",
+          "bottom_right_y": "Bottom-Right Y Coordinate",
+          "min_brightness": "Minimum Brightness (%)",
+          "max_brightness": "Maximum Brightness (%)",
+          "min_color_r": "Minimum Red (0-255)",
+          "min_color_g": "Minimum Green (0-255)",
+          "min_color_b": "Minimum Blue (0-255)",
+          "max_color_r": "Maximum Red (0-255)",
+          "max_color_g": "Maximum Green (0-255)",
+          "max_color_b": "Maximum Blue (0-255)"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch and analyze images (5-3600 seconds)",
+          "enable_image_entity": "Create an image entity showing the current analyzed image",
+          "top_left_x": "X coordinate of the top-left corner of the crop area (leave empty to disable cropping)",
+          "top_left_y": "Y coordinate of the top-left corner of the crop area",
+          "bottom_right_x": "X coordinate of the bottom-right corner of the crop area",
+          "bottom_right_y": "Y coordinate of the bottom-right corner of the crop area",
+          "min_brightness": "Minimum brightness value (brightness values will be scaled from this)",
+          "max_brightness": "Maximum brightness value (brightness values will be scaled to this)",
+          "min_color_r": "Minimum red value (red values will be scaled from this)",
+          "min_color_g": "Minimum green value (green values will be scaled from this)",
+          "min_color_b": "Minimum blue value (blue values will be scaled from this)",
+          "max_color_r": "Maximum red value (red values will be scaled to this)",
+          "max_color_g": "Maximum green value (green values will be scaled to this)",
+          "max_color_b": "Maximum blue value (blue values will be scaled to this)"
         }
+      }
+    },
+    "error": {
+      "crop_coordinates_incomplete": "All crop coordinates must be provided together (top-left X, top-left Y, bottom-right X, bottom-right Y)",
+      "crop_coordinates_invalid": "Invalid crop coordinates: top-left coordinates must be less than bottom-right coordinates"
+    }
+  },
+  "selector": {
+    "source_type": {
+      "options": {
+        "frigate": "Frigate Camera",
+        "snapshot": "Snapshot URL"
+      }
+    },
+    "protocol": {
+      "options": {
+        "http": "HTTP",
+        "https": "HTTPS"
       }
     }
   }

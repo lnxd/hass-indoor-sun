@@ -52,12 +52,20 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
         super().__init__(coordinator)
         self._entry = entry
         data = {**entry.data, **entry.options}
+        
+        source_type = data.get("source_type", "frigate")
+        if source_type == "frigate":
+            camera_name = data.get("camera_name", data.get("camera", "unknown"))
+            device_name = f"Indoor Sun {camera_name}"
+        else:
+            device_name = "Indoor Sun Snapshot"
+        
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": f"Indoor Sun {data['camera']}",
+            "name": device_name,
             "manufacturer": "Indoor Sun",
-            "model": "Frigate Camera Analyzer",
-            "sw_version": "0.1.1",
+            "model": f"{source_type.title()} Camera Analyzer",
+            "sw_version": "0.2.0",
         }
 
     @property
@@ -69,12 +77,63 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
         """
         return bool(self.coordinator.last_update_success)
 
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return additional state attributes common to all sensors.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing camera information and processing status.
+        """
+        if self.coordinator.data is None:
+            return {}
+        
+        data = {**self._entry.data, **self._entry.options}
+        attrs = {
+            "camera": data["camera"],
+            "source_type": self.coordinator.data.get("source_type", "frigate"),
+            "image_url": self.coordinator.image_url,
+            "scan_interval": data.get("scan_interval", 60),
+        }
+        
+        if "cropped" in self.coordinator.data:
+            attrs["cropped"] = self.coordinator.data["cropped"]
+        if "brightness_adjusted" in self.coordinator.data:
+            attrs["brightness_adjusted"] = self.coordinator.data["brightness_adjusted"]
+        if "color_adjusted" in self.coordinator.data:
+            attrs["color_adjusted"] = self.coordinator.data["color_adjusted"]
+        
+        if self.coordinator.crop_coordinates:
+            attrs["crop_coordinates"] = {
+                "top_left_x": self.coordinator.crop_coordinates[0],
+                "top_left_y": self.coordinator.crop_coordinates[1],
+                "bottom_right_x": self.coordinator.crop_coordinates[2],
+                "bottom_right_y": self.coordinator.crop_coordinates[3],
+            }
+        
+        if self.coordinator.brightness_adjustment_enabled:
+            attrs["brightness_range"] = {
+                "min": self.coordinator.min_brightness,
+                "max": self.coordinator.max_brightness,
+            }
+        
+        if self.coordinator.color_adjustment_enabled:
+            attrs["color_range"] = {
+                "min_r": self.coordinator.min_color[0],
+                "min_g": self.coordinator.min_color[1],
+                "min_b": self.coordinator.min_color[2],
+                "max_r": self.coordinator.max_color[0],
+                "max_g": self.coordinator.max_color[1],
+                "max_b": self.coordinator.max_color[2],
+            }
+        
+        return attrs
+
 
 class BrightnessSensor(IndoorSunSensorBase):
     """Sensor for brightness percentage.
     
-    Calculates and reports the brightness percentage of the analyzed
-    camera image using luminance formula.
+    Reports the calculated brightness as a percentage value with
+    percentage device class for proper display in Home Assistant.
     """
 
     def __init__(self, coordinator: IndoorSunCoordinator, entry: ConfigEntry) -> None:
@@ -88,6 +147,8 @@ class BrightnessSensor(IndoorSunSensorBase):
         self._attr_unique_id = f"{entry.entry_id}_brightness"
         self._attr_name = "Sun Brightness"
         self._attr_native_unit_of_measurement = "%"
+        self._attr_device_class = "percentage"
+        self._attr_state_class = "measurement"
         self._attr_icon = "mdi:brightness-percent"
 
     @property
@@ -95,7 +156,7 @@ class BrightnessSensor(IndoorSunSensorBase):
         """Return the brightness percentage.
 
         Returns:
-            Optional[float]: The brightness percentage (0-100), or None if 
+            Optional[float]: The brightness percentage (0-100), or None if
                            data is not available.
         """
         if self.coordinator.data is None:
@@ -108,20 +169,19 @@ class BrightnessSensor(IndoorSunSensorBase):
         """Return additional state attributes.
 
         Returns:
-            Dict[str, Any]: Dictionary containing camera information and 
-                           individual RGB component values.
+            Dict[str, Any]: Dictionary containing RGB values and processing information.
         """
-        if self.coordinator.data is None:
-            return {}
+        attrs = super().extra_state_attributes
         
-        data = {**self._entry.data, **self._entry.options}
-        return {
-            "camera": data["camera"],
-            "base_url": data["base_url"],
-            "r": self.coordinator.data.get("r"),
-            "g": self.coordinator.data.get("g"),
-            "b": self.coordinator.data.get("b"),
-        }
+        if self.coordinator.data is not None:
+            attrs.update({
+                "r": self.coordinator.data.get("r"),
+                "g": self.coordinator.data.get("g"),
+                "b": self.coordinator.data.get("b"),
+                "rgb_string": self.coordinator.data.get("rgb_string"),
+            })
+        
+        return attrs
 
 
 class RGBSensor(IndoorSunSensorBase):
@@ -142,6 +202,7 @@ class RGBSensor(IndoorSunSensorBase):
         self._attr_unique_id = f"{entry.entry_id}_rgb"
         self._attr_name = "Sun RGB"
         self._attr_icon = "mdi:palette"
+        self._attr_state_class = "measurement"
 
     @property
     def native_value(self) -> Optional[str]:
@@ -161,18 +222,21 @@ class RGBSensor(IndoorSunSensorBase):
         """Return additional state attributes.
 
         Returns:
-            Dict[str, Any]: Dictionary containing camera information, 
-                           individual RGB values, and brightness.
+            Dict[str, Any]: Dictionary containing individual RGB values and brightness.
         """
-        if self.coordinator.data is None:
-            return {}
+        attrs = super().extra_state_attributes
         
-        data = {**self._entry.data, **self._entry.options}
-        return {
-            "camera": data["camera"],
-            "base_url": data["base_url"],
-            "r": self.coordinator.data.get("r"),
-            "g": self.coordinator.data.get("g"),
-            "b": self.coordinator.data.get("b"),
-            "brightness": self.coordinator.data.get("brightness"),
-        } 
+        if self.coordinator.data is not None:
+            attrs.update({
+                "r": self.coordinator.data.get("r"),
+                "g": self.coordinator.data.get("g"),
+                "b": self.coordinator.data.get("b"),
+                "brightness": self.coordinator.data.get("brightness"),
+                "rgb_color": [
+                    self.coordinator.data.get("r", 0),
+                    self.coordinator.data.get("g", 0),
+                    self.coordinator.data.get("b", 0),
+                ],
+            })
+        
+        return attrs

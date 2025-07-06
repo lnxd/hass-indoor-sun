@@ -37,7 +37,7 @@ async def async_setup_entry(
 class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc]
     """Image entity for displaying the processed camera frame.
     
-    Shows the current or cropped image from the Frigate camera that is
+    Shows the current or cropped image from the camera source that is
     being analyzed for brightness and RGB values.
     """
 
@@ -51,16 +51,24 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         super().__init__(coordinator)
         self._entry = entry
         data = {**entry.data, **entry.options}
+        
+        source_type = data.get("source_type", "frigate")
+        if source_type == "frigate":
+            camera_name = data.get("camera_name", data.get("camera", "unknown"))
+            device_name = f"Indoor Sun {camera_name}"
+        else:
+            device_name = "Indoor Sun Snapshot"
+        
         self._attr_unique_id = f"{entry.entry_id}_image"
         self._attr_name = "Sun Reference Image"
         self._attr_content_type = "image/jpeg"
         self._attr_exclude_from_recorder = True
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": f"Indoor Sun {data['camera']}",
+            "name": device_name,
             "manufacturer": "Indoor Sun",
-            "model": "Frigate Camera Analyzer",
-            "sw_version": "0.1.1",
+            "model": f"{source_type.title()} Camera Analyzer",
+            "sw_version": "0.2.0",
         }
         self._attr_entity_registry_enabled_default = True
 
@@ -71,7 +79,7 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         Returns:
             bool: True if coordinator has successfully updated and image data exists.
         """
-        return bool(self.coordinator.last_update_success and 
+        return bool(self.coordinator.last_update_success and
                    self.coordinator.data is not None and
                    "image_data" in self.coordinator.data)
 
@@ -100,8 +108,8 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         """Return additional state attributes.
 
         Returns:
-            Dict[str, Any]: Dictionary containing camera information and 
-                           crop coordinates if configured.
+            Dict[str, Any]: Dictionary containing camera information, 
+                           processing status, and configuration details.
         """
         if self.coordinator.data is None:
             return {}
@@ -109,8 +117,17 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         data = {**self._entry.data, **self._entry.options}
         attrs = {
             "camera": data["camera"],
-            "base_url": data["base_url"],
+            "source_type": self.coordinator.data.get("source_type", "frigate"),
+            "image_url": self.coordinator.image_url,
+            "scan_interval": data.get("scan_interval", 60),
         }
+        
+        if "cropped" in self.coordinator.data:
+            attrs["cropped"] = self.coordinator.data["cropped"]
+        if "brightness_adjusted" in self.coordinator.data:
+            attrs["brightness_adjusted"] = self.coordinator.data["brightness_adjusted"]
+        if "color_adjusted" in self.coordinator.data:
+            attrs["color_adjusted"] = self.coordinator.data["color_adjusted"]
         
         if self.coordinator.crop_coordinates:
             attrs["crop_coordinates"] = {
@@ -120,4 +137,29 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
                 "bottom_right_y": self.coordinator.crop_coordinates[3],
             }
         
-        return attrs 
+        if self.coordinator.brightness_adjustment_enabled:
+            attrs["brightness_range"] = {
+                "min": self.coordinator.min_brightness,
+                "max": self.coordinator.max_brightness,
+            }
+        
+        if self.coordinator.color_adjustment_enabled:
+            attrs["color_range"] = {
+                "min_r": self.coordinator.min_color[0],
+                "min_g": self.coordinator.min_color[1],
+                "min_b": self.coordinator.min_color[2],
+                "max_r": self.coordinator.max_color[0],
+                "max_g": self.coordinator.max_color[1],
+                "max_b": self.coordinator.max_color[2],
+            }
+        
+        if self.coordinator.data is not None:
+            attrs.update({
+                "current_brightness": self.coordinator.data.get("brightness"),
+                "current_r": self.coordinator.data.get("r"),
+                "current_g": self.coordinator.data.get("g"),
+                "current_b": self.coordinator.data.get("b"),
+                "current_rgb_string": self.coordinator.data.get("rgb_string"),
+            })
+        
+        return attrs

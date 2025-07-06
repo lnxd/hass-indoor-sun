@@ -29,7 +29,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Returns:
         bool: True if setup was successful.
     """
-    _LOGGER.info("Setting up Indoor Sun integration for camera: %s", entry.data.get("camera"))
+    data = {**entry.data, **entry.options}
+    camera_name = data.get("camera", "unknown")
+    _LOGGER.info("Setting up Indoor Sun integration for camera: %s", camera_name)
     
     coordinator = IndoorSunCoordinator(hass, entry)
     
@@ -41,7 +43,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    data = {**entry.data, **entry.options}
     platforms = ["sensor"]
     if data.get("enable_image_entity", False):
         platforms.append("image")
@@ -62,9 +63,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Returns:
         bool: True if unload was successful.
     """
-    _LOGGER.info("Unloading Indoor Sun integration for camera: %s", entry.data.get("camera"))
-    
     data = {**entry.data, **entry.options}
+    camera_name = data.get("camera", "unknown")
+    _LOGGER.info("Unloading Indoor Sun integration for camera: %s", camera_name)
+    
     platforms = ["sensor"]
     if data.get("enable_image_entity", False):
         platforms.append("image")
@@ -82,7 +84,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: ignore[misc]
     """Data coordinator for Indoor Sun component.
     
-    Manages data fetching and processing from Frigate camera API.
+    Manages data fetching and processing from camera sources (Frigate or direct snapshots).
     """
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -93,6 +95,8 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
             entry: Configuration entry containing connection details.
         """
         data = {**entry.data, **entry.options}
+        
+        self.source_type = data.get("source_type", "frigate")
         self.base_url = data["base_url"]
         self.camera = data["camera"]
         self.scan_interval = data.get("scan_interval", 60)
@@ -107,8 +111,29 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
                 data["bottom_right_y"],
             )
         
-        _LOGGER.debug("Initialized coordinator for camera %s with interval %s seconds", 
-                     self.camera, self.scan_interval)
+        self.brightness_adjustment_enabled = data.get("enable_brightness_adjustment", False)
+        self.min_brightness = data.get("min_brightness", 0)
+        self.max_brightness = data.get("max_brightness", 100)
+        
+        self.color_adjustment_enabled = data.get("enable_color_adjustment", False)
+        self.min_color = (
+            data.get("min_color_r", 0),
+            data.get("min_color_g", 0),
+            data.get("min_color_b", 0),
+        )
+        self.max_color = (
+            data.get("max_color_r", 255),
+            data.get("max_color_g", 255),
+            data.get("max_color_b", 255),
+        )
+        
+        if self.source_type == "frigate":
+            self.image_url = f"{self.base_url}/api/{self.camera}/latest.jpg"
+        else:
+            self.image_url = self.base_url
+        
+        _LOGGER.debug("Initialized coordinator for %s source with URL: %s",
+                     self.source_type, self.image_url)
         
         super().__init__(
             hass,
@@ -118,23 +143,23 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
         )
 
     async def _async_update_data(self) -> Dict[str, Any]:
-        """Fetch data from Frigate camera.
+        """Fetch data from camera source.
 
         Returns:
             Dict[str, Any]: Processed image data including brightness and RGB values.
 
         Raises:
-            UpdateFailed: If communication with Frigate fails.
+            UpdateFailed: If communication with camera source fails.
         """
         try:
             async with async_timeout.timeout(10):
                 return await self._fetch_and_process_frame()
         except Exception as err:
-            _LOGGER.error("Error communicating with Frigate camera %s: %s", self.camera, err)
-            raise UpdateFailed(f"Error communicating with Frigate: {err}") from err
+            _LOGGER.error("Error communicating with camera source %s: %s", self.camera, err)
+            raise UpdateFailed(f"Error communicating with camera: {err}") from err
 
     async def _fetch_and_process_frame(self) -> Dict[str, Any]:
-        """Fetch JPEG frame from Frigate API and process it.
+        """Fetch image from camera source and process it.
 
         Returns:
             Dict[str, Any]: Processed image data with brightness and RGB values.
@@ -143,20 +168,19 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
             UpdateFailed: If frame fetch or processing fails.
         """
         session = async_get_clientsession(self.hass)
-        url = f"{self.base_url}/api/{self.camera}/latest.jpg"
         
-        _LOGGER.debug("Fetching frame from URL: %s", url)
+        _LOGGER.debug("Fetching frame from URL: %s", self.image_url)
         
         try:
-            async with session.get(url) as response:
+            async with session.get(self.image_url) as response:
                 if response.status != 200:
-                    _LOGGER.warning("Failed to fetch frame from %s: HTTP %s", url, response.status)
+                    _LOGGER.warning("Failed to fetch frame from %s: HTTP %s", self.image_url, response.status)
                     raise UpdateFailed(f"Failed to fetch frame: HTTP {response.status}")
                 
                 image_data = await response.read()
                 _LOGGER.debug("Successfully fetched frame data: %s bytes", len(image_data))
         except Exception as err:
-            _LOGGER.error("Network error fetching frame from %s: %s", url, err)
+            _LOGGER.error("Network error fetching frame from %s: %s", self.image_url, err)
             raise UpdateFailed(f"Network error: {err}") from err
             
         result: Dict[str, Any] = await self.hass.async_add_executor_job(
@@ -168,7 +192,7 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
         """Process the image to calculate brightness and RGB values.
 
         Args:
-            image_data: Raw JPEG image data.
+            image_data: Raw image data.
 
         Returns:
             Dict[str, Any]: Processed data containing brightness, RGB values, and
@@ -187,11 +211,10 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
                 if self.crop_coordinates:
                     top_left_x, top_left_y, bottom_right_x, bottom_right_y = self.crop_coordinates
                     img = img.crop((top_left_x, top_left_y, bottom_right_x, bottom_right_y))
-                    _LOGGER.debug("Cropped image from %s to %s using coordinates %s", 
+                    _LOGGER.debug("Cropped image from %s to %s using coordinates %s",
                                  original_size, img.size, self.crop_coordinates)
                 
                 pixels = list(img.getdata())
-                
                 total_pixels = len(pixels)
                 total_r = sum(pixel[0] for pixel in pixels)
                 total_g = sum(pixel[1] for pixel in pixels)
@@ -201,19 +224,30 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
                 avg_g = total_g / total_pixels
                 avg_b = total_b / total_pixels
                 
-                # Calculate brightness using luminance formula
+                if self.color_adjustment_enabled:
+                    avg_r = self._apply_color_adjustment(avg_r, self.min_color[0], self.max_color[0])
+                    avg_g = self._apply_color_adjustment(avg_g, self.min_color[1], self.max_color[1])
+                    avg_b = self._apply_color_adjustment(avg_b, self.min_color[2], self.max_color[2])
+                
                 brightness_y = 0.2126 * avg_r + 0.7152 * avg_g + 0.0722 * avg_b
                 brightness_percent = (brightness_y / 255) * 100
+                
+                if self.brightness_adjustment_enabled:
+                    brightness_percent = self._apply_brightness_adjustment(brightness_percent)
                 
                 result = {
                     "brightness": round(brightness_percent, 2),
                     "r": round(avg_r),
                     "g": round(avg_g),
                     "b": round(avg_b),
-                    "rgb_string": f"{round(avg_r)}, {round(avg_g)}, {round(avg_b)}"
+                    "rgb_string": f"{round(avg_r)}, {round(avg_g)}, {round(avg_b)}",
+                    "source_type": self.source_type,
+                    "cropped": self.crop_coordinates is not None,
+                    "brightness_adjusted": self.brightness_adjustment_enabled,
+                    "color_adjusted": self.color_adjustment_enabled,
                 }
                 
-                _LOGGER.debug("Processed %s pixels: brightness=%.2f%%, RGB=(%d,%d,%d)", 
+                _LOGGER.debug("Processed %s pixels: brightness=%.2f%%, RGB=(%d,%d,%d)",
                              total_pixels, brightness_percent, round(avg_r), round(avg_g), round(avg_b))
                 
                 if self.enable_image_entity:
@@ -229,6 +263,34 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
             _LOGGER.error("Failed to process image data: %s", err)
             raise
 
+    def _apply_color_adjustment(self, value: float, min_val: int, max_val: int) -> float:
+        """Apply color adjustment to scale a color value.
+
+        Args:
+            value: Original color value (0-255).
+            min_val: Minimum output value.
+            max_val: Maximum output value.
+
+        Returns:
+            float: Adjusted color value.
+        """
+        normalized = value / 255.0
+        adjusted = min_val + (normalized * (max_val - min_val))
+        return float(max(0.0, min(255.0, adjusted)))
+
+    def _apply_brightness_adjustment(self, brightness: float) -> float:
+        """Apply brightness adjustment to scale a brightness value.
+
+        Args:
+            brightness: Original brightness value (0-100).
+
+        Returns:
+            float: Adjusted brightness value.
+        """
+        normalized = brightness / 100.0
+        adjusted = self.min_brightness + (normalized * (self.max_brightness - self.min_brightness))
+        return float(max(0.0, min(100.0, adjusted)))
+
 
 async def async_get_options_flow(config_entry: ConfigEntry) -> config_entries.OptionsFlow:
     """Return the options flow.
@@ -241,4 +303,4 @@ async def async_get_options_flow(config_entry: ConfigEntry) -> config_entries.Op
     """
     from .config_flow import IndoorSunOptionsFlow
 
-    return IndoorSunOptionsFlow(config_entry) 
+    return IndoorSunOptionsFlow(config_entry)
