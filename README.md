@@ -2,7 +2,7 @@
 
 Home Assistant custom component that fetches JPEG frames from a Frigate camera and calculates brightness and RGB values to create ambient lighting that matches the sky conditions.
 
-[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository_url=https%3A%2F%2Fgithub.com%2Flnxd%2Fhass-indoor-sun&category=integration)
+[![Add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=lnxd&repository=hass-indoor-sun)
 
 ## Features
 
