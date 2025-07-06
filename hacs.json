@@ -2,9 +2,7 @@
   "name": "Indoor Sun",
   "content_in_root": false,
   "domains": ["hass_indoor_sun"],
-  "country": "worldwide",
   "homeassistant": "2024.2.0",
   "render_readme": true,
-  "render_changelog": true,
-  "iot_class": "local_polling"
-} 
+  "render_changelog": true
+}
