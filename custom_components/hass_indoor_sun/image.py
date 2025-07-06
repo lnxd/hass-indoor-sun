@@ -4,8 +4,8 @@ Provides image entities for displaying processed camera frames from the Indoor
 Sun integration. The image entity shows the current or cropped image from the
 camera source being analyzed for brightness and RGB values.
 
-The image entity automatically generates access tokens to prevent IndexError
-issues and provides additional state attributes with camera information,
+The image entity automatically works with the new Home Assistant Image API
+and provides additional state attributes with camera information,
 processing status, and configuration details.
 """
 
@@ -82,13 +82,6 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
         }
         self._attr_entity_registry_enabled_default = True
 
-        self.access_tokens: list[str] = []
-
-    async def async_added_to_hass(self) -> None:
-        """Called when entity is added to Home Assistant."""
-        await super().async_added_to_hass()
-        await self.async_generate_access_token()
-
     @property
     def available(self) -> bool:
         """Return True if entity is available.
@@ -103,8 +96,8 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
             and "image_data" in self.coordinator.data
         )
 
-    async def async_image(self) -> Optional[bytes]:
-        """Return the current image data.
+    async def async_get_image(self) -> Optional[bytes]:
+        """Return the current image data using the new Image API.
 
         Returns:
             Optional[bytes]: The JPEG image data, or None if not available.

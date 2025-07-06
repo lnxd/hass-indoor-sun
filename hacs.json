@@ -2,7 +2,7 @@
   "name": "Indoor Sun",
   "content_in_root": false,
   "domains": ["hass_indoor_sun"],
-  "homeassistant": "2024.2.0",
+  "homeassistant": "2024.6.0",
   "render_readme": true,
   "render_changelog": true
 }
