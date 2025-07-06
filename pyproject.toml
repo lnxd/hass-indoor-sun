@@ -35,6 +35,14 @@ ignore_missing_imports = true
 module = ["PIL.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["voluptuous"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.data_entry_flow"]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
