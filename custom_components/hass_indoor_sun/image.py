@@ -59,7 +59,7 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
             entry: Configuration entry containing device information.
         """
         CoordinatorEntity.__init__(self, coordinator)
-        ImageEntity.__init__(self)
+        ImageEntity.__init__(self, coordinator.hass)
         
         self._entry = entry
         data = {**entry.data, **entry.options}
