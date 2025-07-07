@@ -1,0 +1,46 @@
+{
+    "name": "Indoor Sun",
+    // Debian 12, slim
+    "image": "mcr.microsoft.com/devcontainers/base:debian-12",
+
+    "workspaceFolder": "/workspace",
+    "remoteUser": "vscode",
+
+    "features": {
+        // Utilities
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": "true",
+            "configureZshAsDefaultShell": "true",
+            "installOhMyZsh": "true",
+            "upgradePackages": "true"
+        },
+
+        // Python 3.12 compiled with PGO/LTO
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12",
+            "optimize": "true"
+        },
+
+        // Toolbox
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+
+        // Extra Debian packages
+        "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+            "packages": "curl,gnupg,locales,tzdata,wget,gh,screen"
+        }
+    },
+
+    "postCreateCommand": ".devcontainer/setup.sh", // idempotent
+    "waitFor": "postCreateCommand",
+
+    "containerEnv": {
+        "TZ": "Australia/Melbourne",
+        "LANG": "en_US.UTF-8",
+        "LC_ALL": "en_US.UTF-8",
+        "LANGUAGE": "en_US.UTF-8",
+
+        // Disable telemetry everywhere
+        "DEVCONTAINERS_DISABLE_TELEMETRY": "1"
+    }
+}
