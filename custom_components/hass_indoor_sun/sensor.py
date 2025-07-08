@@ -66,7 +66,7 @@ class IndoorSunSensorBase(CoordinatorEntity, SensorEntity):  # type: ignore[misc
             "name": device_name,
             "manufacturer": "Indoor Sun",
             "model": f"{source_type.title()} Camera Analyzer",
-            "sw_version": "0.2.0",
+            "sw_version": "1.0.0",
         }
 
     @property
