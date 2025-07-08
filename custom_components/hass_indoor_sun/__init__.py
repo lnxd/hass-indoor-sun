@@ -141,6 +141,11 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
 
         self.image_url: Optional[str] = None
 
+        self.last_known_brightness: Optional[float] = None
+        self.last_known_r: Optional[float] = None
+        self.last_known_g: Optional[float] = None
+        self.last_known_b: Optional[float] = None
+
         _LOGGER.debug(
             "Initialized coordinator for %s source with URL: %s",
             self.source_type,
@@ -211,6 +216,88 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
             self._process_image, image_data
         )
         return result
+
+    def _is_false_read(self, brightness: float, r: float, g: float, b: float) -> bool:
+        """Check if the calculated values represent a false read.
+
+        Args:
+            brightness: Brightness percentage (0-100).
+            r: Red value (0-255).
+            g: Green value (0-255).
+            b: Blue value (0-255).
+
+        Returns:
+            bool: True if this appears to be a false read.
+        """
+        if brightness <= 0:
+            return True
+        
+        if r <= 10 and g <= 10 and b <= 10:
+            return True
+        
+        return False
+
+    def _get_fallback_values(self) -> Dict[str, Any]:
+        """Get fallback values when no last known values exist.
+
+        Returns:
+            Dict[str, Any]: Fallback values with 50% brightness and warm white RGB.
+        """
+        warm_white_r = 255
+        warm_white_g = 247
+        warm_white_b = 228
+        
+        return {
+            "brightness": 50.0,
+            "r": warm_white_r,
+            "g": warm_white_g,
+            "b": warm_white_b,
+            "rgb_string": f"{warm_white_r}, {warm_white_g}, {warm_white_b}",
+        }
+
+    def _get_last_known_values(self) -> Dict[str, Any]:
+        """Get last known values for false read recovery.
+
+        Returns:
+            Dict[str, Any]: Last known values or fallback values if none exist.
+        """
+        if (
+            self.last_known_brightness is not None
+            and self.last_known_r is not None
+            and self.last_known_g is not None
+            and self.last_known_b is not None
+        ):
+            return {
+                "brightness": self.last_known_brightness,
+                "r": self.last_known_r,
+                "g": self.last_known_g,
+                "b": self.last_known_b,
+                "rgb_string": f"{int(self.last_known_r)}, {int(self.last_known_g)}, {int(self.last_known_b)}",
+            }
+        else:
+            _LOGGER.debug("No last known values available, using fallback defaults")
+            return self._get_fallback_values()
+
+    def _update_last_known_values(self, brightness: float, r: float, g: float, b: float) -> None:
+        """Update the last known values with new valid readings.
+
+        Args:
+            brightness: Brightness percentage (0-100).
+            r: Red value (0-255).
+            g: Green value (0-255).
+            b: Blue value (0-255).
+        """
+        self.last_known_brightness = brightness
+        self.last_known_r = r
+        self.last_known_g = g
+        self.last_known_b = b
+        _LOGGER.debug(
+            "Updated last known values: brightness=%.2f%%, RGB=(%d,%d,%d)",
+            brightness,
+            int(r),
+            int(g),
+            int(b),
+        )
 
     def _process_image(self, image_data: bytes) -> Dict[str, Any]:
         """Process the image to calculate brightness and RGB values.
@@ -288,26 +375,61 @@ class IndoorSunCoordinator(DataUpdateCoordinator[Dict[str, Any]]):  # type: igno
                     avg_b = scale(avg_b, self.min_color[2], self.max_color[2])
                     color_adj_flag = True
 
-                result = {
-                    "brightness": round(brightness_percent, 2),
-                    "r": round(avg_r),
-                    "g": round(avg_g),
-                    "b": round(avg_b),
-                    "rgb_string": f"{round(avg_r)}, {round(avg_g)}, {round(avg_b)}",
-                    "source_type": self.source_type,
-                    "cropped": self.crop_coordinates is not None,
-                    "brightness_adjusted": brightness_adj_flag,
-                    "color_adjusted": color_adj_flag,
-                }
+                if self._is_false_read(brightness_percent, avg_r, avg_g, avg_b):
+                    _LOGGER.warning(
+                        "False read detected: brightness=%.2f%%, RGB=(%d,%d,%d). Using last known values.",
+                        brightness_percent,
+                        int(avg_r),
+                        int(avg_g),
+                        int(avg_b),
+                    )
+                    
+                    fallback_values = self._get_last_known_values()
+                    
+                    result = {
+                        "brightness": fallback_values["brightness"],
+                        "r": fallback_values["r"],
+                        "g": fallback_values["g"],
+                        "b": fallback_values["b"],
+                        "rgb_string": fallback_values["rgb_string"],
+                        "source_type": self.source_type,
+                        "cropped": self.crop_coordinates is not None,
+                        "brightness_adjusted": brightness_adj_flag,
+                        "color_adjusted": color_adj_flag,
+                        "used_fallback": True,  # Flag to indicate fallback was used
+                    }
+                    
+                    _LOGGER.debug(
+                        "Used fallback values: brightness=%.2f%%, RGB=(%d,%d,%d)",
+                        fallback_values["brightness"],
+                        int(fallback_values["r"]),
+                        int(fallback_values["g"]),
+                        int(fallback_values["b"]),
+                    )
+                else:
+                    self._update_last_known_values(brightness_percent, avg_r, avg_g, avg_b)
+                    
+                    result = {
+                        "brightness": round(brightness_percent, 2),
+                        "r": round(avg_r),
+                        "g": round(avg_g),
+                        "b": round(avg_b),
+                        "rgb_string": f"{round(avg_r)}, {round(avg_g)}, {round(avg_b)}",
+                        "source_type": self.source_type,
+                        "cropped": self.crop_coordinates is not None,
+                        "brightness_adjusted": brightness_adj_flag,
+                        "color_adjusted": color_adj_flag,
+                        "used_fallback": False,  # Flag to indicate normal read
+                    }
 
-                _LOGGER.debug(
-                    "Processed %s pixels: brightness=%.2f%%, RGB=(%d,%d,%d)",
-                    total_pixels,
-                    brightness_percent,
-                    round(avg_r),
-                    round(avg_g),
-                    round(avg_b),
-                )
+                    _LOGGER.debug(
+                        "Processed %s pixels: brightness=%.2f%%, RGB=(%d,%d,%d)",
+                        total_pixels,
+                        brightness_percent,
+                        round(avg_r),
+                        round(avg_g),
+                        round(avg_b),
+                    )
 
                 if self.enable_image_entity:
                     img_byte_array = BytesIO()

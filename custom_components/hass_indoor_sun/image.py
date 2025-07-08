@@ -144,6 +144,8 @@ class IndoorSunImageEntity(CoordinatorEntity, ImageEntity):  # type: ignore[misc
             attrs["brightness_adjusted"] = self.coordinator.data["brightness_adjusted"]
         if "color_adjusted" in self.coordinator.data:
             attrs["color_adjusted"] = self.coordinator.data["color_adjusted"]
+        if "used_fallback" in self.coordinator.data:
+            attrs["used_fallback"] = self.coordinator.data["used_fallback"]
 
         if self.coordinator.crop_coordinates:
             attrs["crop_coordinates"] = {
